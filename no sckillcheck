@@ -16,13 +16,11 @@ local function annihilateSkillCheckEvents()
                 local event = targetFolder:FindFirstChild(eventName)
                 if event then
                     event:Destroy()
-                    print("[✓] Event dihancurkan: " .. target.folder .. " > " .. eventName)
                     
                     local originalParent = targetFolder
                     originalParent.ChildAdded:Connect(function(child)
                         if child.Name == eventName then
                             child:Destroy()
-                            print("[!] Event " .. eventName .. " mencoba kembali, langsung dihancurkan")
                         end
                     end)
                 end
@@ -83,8 +81,6 @@ local function shutdownSkillCheckRemotes()
             end
         end
     end
-    
-    print("[✓] " .. #allRemotes .. " remote skill check telah dinetralisir")
 end
 
 local function removeSkillCheckUI()
@@ -115,7 +111,6 @@ local function removeSkillCheckUI()
         local descName = descendant.Name:lower()
         if descName:find("skill") or descName:find("check") or descName:find("qte") then
             descendant:Destroy()
-            print("[!] UI skill check dicegah muncul")
         end
     end)
 end
@@ -145,6 +140,7 @@ local function hackSkillCheckModules()
             env.checkSuccess = function() return true end
             env.checkFail = function() return end
             env.activateQTE = function() return end
+            
             for k, v in pairs(env) do
                 if type(v) == "function" then
                     local kLower = k:lower()
@@ -155,8 +151,6 @@ local function hackSkillCheckModules()
             end
         end
     end
-    
-    print("[✓] " .. #skillModules .. " module skill check telah di-hack")
 end
 
 local function autoCompleteSkillChecks()
@@ -177,26 +171,7 @@ local function autoCompleteSkillChecks()
     end)
 end
 
-local function removeFailPenalties()
-    local failEvents = {}
-    
-    for _, obj in ipairs(replicatedStorage:GetDescendants()) do
-        if obj:IsA("RemoteEvent") and (obj.Name:find("Fail") or obj.Name:find("Error")) then
-            table.insert(failEvents, obj)
-            local oldFire = obj.FireServer
-            if oldFire then
-                obj.FireServer = function(self, ...)
-                    return
-                end
-            end
-        end
-    end
-    
-    print("[✓] " .. #failEvents .. " event fail telah dinetralisir")
-end
-
 local function main()
-    
     wait(1)
     
     annihilateSkillCheckEvents()
@@ -211,15 +186,10 @@ local function main()
     removeSkillCheckUI()
     wait(0.5)
     
-    removeFailPenalties()
-    wait(0.5)
-    
     autoCompleteSkillChecks()
-    
     
     while wait(10) do
         annihilateSkillCheckEvents()
-        removeFailPenalties()
     end
 end
 
