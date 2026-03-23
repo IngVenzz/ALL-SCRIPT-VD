@@ -1,0 +1,256 @@
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local remotesFolder = replicatedStorage:FindFirstChild("Remotes")
+local playersService = game:GetService("Players")
+local player = playersService.LocalPlayer
+
+local function annihilateSkillCheckEvents()
+    local targets = {
+        {folder = "Generator", events = {"SkillCheckEvent"}},
+        {folder = "Healing", events = {"SkillCheckEvent"}}
+    }
+    
+    for _, target in ipairs(targets) do
+        local targetFolder = remotesFolder and remotesFolder:FindFirstChild(target.folder)
+        if targetFolder then
+            for _, eventName in ipairs(target.events) do
+                local event = targetFolder:FindFirstChild(eventName)
+                if event then
+                    event:Destroy()
+                    print("[✓] Event dihancurkan: " .. target.folder .. " > " .. eventName)
+                    
+                    local originalParent = targetFolder
+                    originalParent.ChildAdded:Connect(function(child)
+                        if child.Name == eventName then
+                            child:Destroy()
+                            print("[!] Event " .. eventName .. " mencoba kembali, langsung dihancurkan")
+                        end
+                    end)
+                end
+            end
+        end
+    end
+end
+
+local function shutdownSkillCheckRemotes()
+    local allRemotes = {}
+    
+    for _, obj in ipairs(replicatedStorage:GetDescendants()) do
+        if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) then
+            local objName = obj.Name:lower()
+            if objName:find("skill") or 
+               objName:find("check") or 
+               objName:find("generator") or 
+               objName:find("healing") or
+               objName:find("repair") or
+               objName:find("fix") then
+                table.insert(allRemotes, obj)
+            end
+        end
+    end
+    
+    for _, remote in ipairs(allRemotes) do
+        if remote:IsA("RemoteEvent") then
+            local oldFire = remote.FireServer
+            if oldFire then
+                remote.FireServer = function(self, ...)
+                    local args = {...}
+                    if args[1] and type(args[1]) == "string" then
+                        if args[1]:lower():find("skill") or args[1]:lower():find("check") then
+                            return
+                        end
+                    end
+                    return oldFire(self, unpack(args))
+                end
+            end
+            
+            remote.OnClientEvent:Connect(function(...)
+                return
+            end)
+        end
+        
+        if remote:IsA("RemoteFunction") then
+            local oldInvoke = remote.InvokeServer
+            if oldInvoke then
+                remote.InvokeServer = function(self, ...)
+                    local args = {...}
+                    if args[1] and type(args[1]) == "string" then
+                        if args[1]:lower():find("skill") or args[1]:lower():find("check") then
+                            return true
+                        end
+                    end
+                    return oldInvoke(self, unpack(args))
+                end
+            end
+        end
+    end
+    
+    print("[✓] " .. #allRemotes .. " remote skill check telah dinetralisir")
+end
+
+local function removeSkillCheckUI()
+    local playerGui = player:WaitForChild("PlayerGui")
+    
+    local function scanAndDestroySkillUI(instance)
+        if instance:IsA("Frame") or instance:IsA("ImageLabel") then
+            local instanceName = instance.Name:lower()
+            if instanceName:find("skill") or 
+               instanceName:find("check") or 
+               instanceName:find("generator") or
+               instanceName:find("healing") or
+               instanceName:find("qte") or
+               instanceName:find("quicktime") then
+                instance.Visible = false
+                instance:Destroy()
+            end
+        end
+        
+        for _, child in ipairs(instance:GetChildren()) do
+            scanAndDestroySkillUI(child)
+        end
+    end
+    
+    scanAndDestroySkillUI(playerGui)
+    
+    playerGui.DescendantAdded:Connect(function(descendant)
+        local descName = descendant.Name:lower()
+        if descName:find("skill") or descName:find("check") or descName:find("qte") then
+            descendant:Destroy()
+            print("[!] UI skill check dicegah muncul")
+        end
+    end)
+end
+
+local function hackSkillCheckModules()
+    local skillModules = {}
+    
+    for _, module in ipairs(replicatedStorage:GetDescendants()) do
+        if module:IsA("ModuleScript") then
+            local moduleName = module.Name:lower()
+            if moduleName:find("skill") or 
+               moduleName:find("check") or 
+               moduleName:find("generator") or
+               moduleName:find("healing") then
+                table.insert(skillModules, module)
+            end
+        end
+    end
+    
+    for _, module in ipairs(skillModules) do
+        local success, env = pcall(function()
+            return getfenv(module)
+        end)
+        
+        if success and env then
+            env.startSkillCheck = function() return true end
+            env.checkSuccess = function() return true end
+            env.checkFail = function() return end
+            env.activateQTE = function() return end
+            for k, v in pairs(env) do
+                if type(v) == "function" then
+                    local kLower = k:lower()
+                    if kLower:find("skill") or kLower:find("check") or kLower:find("qte") then
+                        env[k] = function(...) return true end
+                    end
+                end
+            end
+        end
+    end
+    
+    print("[✓] " .. #skillModules .. " module skill check telah di-hack")
+end
+
+local function autoCompleteSkillChecks()
+    local function completeAnySkillCheck()
+        for _, remote in ipairs(replicatedStorage:GetDescendants()) do
+            if remote:IsA("RemoteEvent") and (remote.Name:find("SkillCheck") or remote.Name:find("SkillCheckEvent")) then
+                remote:FireServer("Success", true)
+                remote:FireServer("Complete", true)
+                remote:FireServer("Pass", true)
+            end
+        end
+    end
+    
+    spawn(function()
+        while wait(0.1) do
+            completeAnySkillCheck()
+        end
+    end)
+end
+
+local function removeFailPenalties()
+    local failEvents = {}
+    
+    for _, obj in ipairs(replicatedStorage:GetDescendants()) do
+        if obj:IsA("RemoteEvent") and (obj.Name:find("Fail") or obj.Name:find("Error")) then
+            table.insert(failEvents, obj)
+            local oldFire = obj.FireServer
+            if oldFire then
+                obj.FireServer = function(self, ...)
+                    return
+                end
+            end
+        end
+    end
+    
+    print("[✓] " .. #failEvents .. " event fail telah dinetralisir")
+end
+
+local function main()
+    
+    wait(1)
+    
+    annihilateSkillCheckEvents()
+    wait(0.5)
+    
+    shutdownSkillCheckRemotes()
+    wait(0.5)
+    
+    hackSkillCheckModules()
+    wait(0.5)
+    
+    removeSkillCheckUI()
+    wait(0.5)
+    
+    removeFailPenalties()
+    wait(0.5)
+    
+    autoCompleteSkillChecks()
+    
+    
+    while wait(10) do
+        annihilateSkillCheckEvents()
+        removeFailPenalties()
+    end
+end
+
+pcall(function()
+    main()
+end)
+
+_G.killAllSkillChecks = function()
+    annihilateSkillCheckEvents()
+    shutdownSkillCheckRemotes()
+    removeSkillCheckUI()
+end
+
+_G.bypassGenerator = function()
+    local generatorRemote = remotesFolder and remotesFolder:FindFirstChild("Generator")
+    if generatorRemote then
+        local skillEvent = generatorRemote:FindFirstChild("SkillCheckEvent")
+        if skillEvent then
+            skillEvent:FireServer("Complete", true)
+            skillEvent:FireServer("Success", 100)
+        end
+    end
+end
+
+_G.bypassHealing = function()
+    local healingRemote = remotesFolder and remotesFolder:FindFirstChild("Healing")
+    if healingRemote then
+        local skillEvent = healingRemote:FindFirstChild("SkillCheckEvent")
+        if skillEvent then
+            skillEvent:FireServer("Complete", true)
+            skillEvent:FireServer("Success", 100)
+        end
+    end
+end
