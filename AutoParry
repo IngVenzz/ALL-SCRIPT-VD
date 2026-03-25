@@ -32,7 +32,7 @@ end
 local function AutoParry()
     if not Config.AUTO_Parry then return end
     if GetRole() ~= "Survivor" then return end
-    if tick() - State.LastParryTime < 0.5 then return end
+    if tick() - State.LastParryTime < 0.2 then return end
     
     local root = GetCharacterRoot()
     if not root then return end
@@ -42,7 +42,7 @@ local function AutoParry()
             local killerRoot = player.Character:FindFirstChild("HumanoidRootPart")
             if killerRoot then
                 local dist = (killerRoot.Position - root.Position).Magnitude
-                if dist <= 15 then
+                if dist <= 12 then
                     pcall(function()
                         local remotes = ReplicatedStorage:FindFirstChild("Remotes")
                         if remotes then
