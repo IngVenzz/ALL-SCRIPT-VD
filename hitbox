@@ -5,7 +5,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local Config = {
     HITBOX_Enabled = true,
-    HITBOX_Size = 11
+    HITBOX_Size = 15
 }
 
 local State = {
