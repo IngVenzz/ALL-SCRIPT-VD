@@ -1,0 +1,134 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Konfigurasi Speed
+local Config = {
+    SPEED_Enabled = true,  -- Ubah ke true untuk aktif
+    SPEED_Value = 17.12,
+    SPEED_Method = "Attribute" -- "Attribute" atau "TP"
+}
+
+-- State
+local State = {
+    OriginalSpeed = 16,
+    Unloaded = false
+}
+
+-- Fungsi helper
+local function GetCharacterRoot()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function GetRole()
+    if not LocalPlayer.Team then return "Unknown" end
+    local name = LocalPlayer.Team.Name
+    if name == "Killer" then return "Killer" end
+    if name == "Survivors" then return "Survivor" end
+    return "Lobby"
+end
+
+-- Fungsi update speed (hanya untuk Survivor)
+local function UpdateSpeed()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    
+    local role = GetRole()
+    if role ~= "Survivor" then
+        if hum.WalkSpeed ~= State.OriginalSpeed then
+            hum.WalkSpeed = State.OriginalSpeed
+        end
+        return
+    end
+    
+    if State.OriginalSpeed == 16 and hum.WalkSpeed ~= Config.SPEED_Value then
+        State.OriginalSpeed = hum.WalkSpeed
+    end
+    
+    if Config.SPEED_Enabled then
+        hum.WalkSpeed = Config.SPEED_Value
+    else
+        hum.WalkSpeed = State.OriginalSpeed
+    end
+end
+
+-- Method TP (Teleport) untuk speed (hanya untuk Survivor)
+local function TeleportSpeed()
+    local role = GetRole()
+    if role ~= "Survivor" then return end
+    
+    local root = GetCharacterRoot()
+    local cam = workspace.CurrentCamera
+    if not root or not cam then return end
+    
+    local moveDir = Vector3.zero
+    
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+        moveDir = moveDir + cam.CFrame.LookVector
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+        moveDir = moveDir - cam.CFrame.LookVector
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+        moveDir = moveDir - cam.CFrame.RightVector
+    end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+        moveDir = moveDir + cam.CFrame.RightVector
+    end
+    
+    if moveDir.Magnitude > 0 then
+        moveDir = moveDir.Unit * (Config.SPEED_Value / 10)
+        root.CFrame = root.CFrame + moveDir
+    end
+end
+
+-- Loop utama
+local function MainLoop()
+    while not State.Unloaded do
+        local role = GetRole()
+        
+        if role == "Survivor" and Config.SPEED_Enabled then
+            if Config.SPEED_Method == "Attribute" then
+                UpdateSpeed()
+            elseif Config.SPEED_Method == "TP" then
+                TeleportSpeed()
+            end
+        else
+            local char = LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum and hum.WalkSpeed ~= State.OriginalSpeed then
+                    hum.WalkSpeed = State.OriginalSpeed
+                end
+            end
+        end
+        task.wait(0.05)
+    end
+end
+
+-- Reset speed saat karakter berganti
+local function OnCharacterAdded()
+    task.wait(0.5)
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            State.OriginalSpeed = hum.WalkSpeed
+            if GetRole() == "Survivor" and Config.SPEED_Enabled then
+                hum.WalkSpeed = Config.SPEED_Value
+            end
+        end
+    end
+end
+
+-- Inisialisasi
+local function Init()
+    LocalPlayer.CharacterAdded:Connect(OnCharacterAdded)
+    task.spawn(MainLoop)
+end
+
+Init()
