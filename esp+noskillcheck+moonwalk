@@ -1,0 +1,7 @@
+local url1 = "https://raw.githubusercontent.com/IngVenzz/ALL-SCRIPT-VD/refs/heads/main/no%20sckillcheck"
+local url2 = "https://raw.githubusercontent.com/IngVenzz/ALL-SCRIPT-VD/refs/heads/main/esp%20only"
+local url3 = "https://raw.githubusercontent.com/IngVenzz/ALL-SCRIPT-VD/refs/heads/main/moonwalk"
+
+loadstring(game:HttpGet(url1))()
+loadstring(game:HttpGet(url2))()
+loadstring(game:HttpGet(url3))()
