@@ -15,13 +15,26 @@ local Config = {
 
 local activeHighlights = {}
 
+local function GetRole()
+    if not localPlayer.Team then return "Unknown" end
+    local name = localPlayer.Team.Name
+    if name == "Killer" then return "Killer" end
+    if name == "Survivors" then return "Survivor" end
+    return "Lobby"
+end
+
+local function IsESPAllowed()
+    local role = GetRole()
+    return role == "Killer" or role == "Survivor"
+end
+
 UserInputService.InputBegan:Connect(function(input, processed)
     if not processed and input.KeyCode == Enum.KeyCode.V then
         Config.ESP.Enabled = not Config.ESP.Enabled
         
         for _, highlight in pairs(activeHighlights) do
             if highlight and highlight.Parent then
-                highlight.Enabled = Config.ESP.Enabled
+                highlight.Enabled = Config.ESP.Enabled and IsESPAllowed()
             end
         end
     end
@@ -39,7 +52,7 @@ local function ApplyHighlight(obj, color)
     h.FillTransparency = 0.3
     h.OutlineTransparency = 0.7
     h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    h.Enabled = Config.ESP.Enabled
+    h.Enabled = Config.ESP.Enabled and IsESPAllowed()
     h.Parent = obj
     
     activeHighlights[obj] = h
@@ -51,7 +64,7 @@ local function ApplyHighlight(obj, color)
     end)
 end
 
-local function GetRole(p)
+local function GetPlayerRole(p)
     if p.Team then
         local teamName = p.Team.Name:lower()
         if teamName:find("killer") or teamName:find("murderer") or teamName:find("monster") then
@@ -72,7 +85,7 @@ local function SetupPlayerESP(p)
             activeHighlights[char] = nil
             oldHighlight:Destroy()
         end
-        ApplyHighlight(char, Config.ESP.Players[GetRole(p)].Color)
+        ApplyHighlight(char, Config.ESP.Players[GetPlayerRole(p)].Color)
     end
     
     p.CharacterAdded:Connect(addHighlightToCharacter)
@@ -94,8 +107,20 @@ end
 
 local function watchForCutscene()
     local lastChar = localPlayer.Character
+    local lastRole = GetRole()
     
     RunService.Heartbeat:Connect(function()
+        local currentRole = GetRole()
+        if currentRole ~= lastRole then
+            lastRole = currentRole
+            local espEnabled = Config.ESP.Enabled and IsESPAllowed()
+            for _, highlight in pairs(activeHighlights) do
+                if highlight and highlight.Parent then
+                    highlight.Enabled = espEnabled
+                end
+            end
+        end
+        
         if localPlayer.Character ~= lastChar then
             lastChar = localPlayer.Character
             
@@ -108,7 +133,7 @@ local function watchForCutscene()
                         activeHighlights[p.Character] = nil
                     end
                     task.wait(0.1)
-                    ApplyHighlight(p.Character, Config.ESP.Players[GetRole(p)].Color)
+                    ApplyHighlight(p.Character, Config.ESP.Players[GetPlayerRole(p)].Color)
                 end
             end
         end
