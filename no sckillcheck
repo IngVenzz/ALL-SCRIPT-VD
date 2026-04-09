@@ -5,7 +5,6 @@ local player = playersService.LocalPlayer
 local remotesFolder = replicatedStorage:FindFirstChild("Remotes")
 if not remotesFolder then return end
 
--- Fungsi GetRole sesuai permintaan
 local function GetRole()
     if not player.Team then return "Unknown" end
     local name = player.Team.Name
