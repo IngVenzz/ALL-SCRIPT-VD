@@ -18,7 +18,6 @@ local function IsScriptActive()
     return role == "Survivor"
 end
 
--- Cache storage
 local targetEvents = {}
 local blockedRemotes = {}
 
